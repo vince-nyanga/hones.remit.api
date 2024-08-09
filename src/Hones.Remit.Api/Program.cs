@@ -22,6 +22,13 @@ builder.Services.AddMassTransit(configurator =>
     var entryAssembly = Assembly.GetEntryAssembly();
     configurator.AddConsumers(entryAssembly);
     
+    configurator.AddEntityFrameworkOutbox<OrdersDbContext>(x =>
+    {
+        x.QueryDelay = TimeSpan.FromSeconds(5);
+        x.UsePostgres();
+        x.UseBusOutbox();
+    });
+    
     configurator.UsingRabbitMq((context, cfg) =>
     {
         cfg.Host("localhost", 9520, "/", h =>
