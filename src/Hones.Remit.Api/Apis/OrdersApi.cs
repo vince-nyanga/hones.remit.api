@@ -53,7 +53,7 @@ public static class OrdersApi
 
         group.MapPatch("/{orderId:guid}/pay", ApiHandler.PayOrder)
             .WithName("PayOrder")
-            .Produces((int)HttpStatusCode.OK)
+            .Produces((int)HttpStatusCode.Accepted)
             .Produces<ProblemDetails>((int)HttpStatusCode.NotFound)
             .Produces<ProblemDetails>((int)HttpStatusCode.BadRequest)
             .WithOpenApi();
@@ -90,7 +90,6 @@ public static class OrdersApi
         }
 
         public static async Task<IResult> AddOrder(
-            OrdersDbContext dbContext,
             IRequestClient<CreateOrder> requestClient,
             CreateOrderDto createOrderDto,
             CancellationToken cancellationToken)
@@ -174,30 +173,13 @@ public static class OrdersApi
         }
         
         public static async Task<IResult> PayOrder(
-            OrdersDbContext dbContext,
-            IEmailService emailService,
+            ISendEndpointProvider sendEndpointProvider,
             Guid orderId,
             CancellationToken cancellationToken)
         {
-            var order = await dbContext.Orders
-                .FirstOrDefaultAsync(o => o.PublicId == orderId, cancellationToken);
-
-            if (order is null)
-            {
-                return Results.NotFound();
-            }
-
-            var result = order.Pay();
-            await dbContext.SaveChangesAsync(cancellationToken);
-
-            await result.SwitchAsync(
-                _ => SendOrderPaidEmails(emailService, order),
-                _ => Task.CompletedTask);
-
-            return result.MatchFirst(
-                _ => Results.Ok(),
-                error => Results.BadRequest(error.Description)
-            );
+            var endpoint = await sendEndpointProvider.GetSendEndpoint(new Uri("queue:pay-order"));
+            await endpoint.Send(new PayOrder(orderId), cancellationToken);
+            return Results.Accepted();
         }
 
         public static async Task<IResult> CollectOrder(
@@ -264,45 +246,6 @@ public static class OrdersApi
                 .AppendLine("HonesRemit Team");
 
             return emailService.SendEmailAsync(order.SenderEmail, $"Order Cancelled - {orderReference}",
-                emailBuilder.ToString());
-        }
-
-
-        private static async Task SendOrderPaidEmails(IEmailService emailService, Order order)
-        {
-            var orderReference = EncodeId(order.Id);
-            var emailBuilder = new StringBuilder($"Hi {order.SenderName},")
-                .AppendLine()
-                .AppendLine()
-                .AppendLine("Thank you for your payment. Your order is now ready for collection.")
-                .AppendLine()
-                .AppendLine("Order Details:")
-                .AppendLine($"Amount: {order.Currency} {order.Amount:N2}")
-                .AppendLine($"Reference: {orderReference}")
-                .AppendLine($"Recipient: {order.RecipientName} ({order.RecipientEmail})")
-                .AppendLine()
-                .AppendLine("Regards,")
-                .AppendLine("HonesRemit Team");
-
-            await emailService.SendEmailAsync(order.SenderEmail, $"Order ready for collection - {orderReference}",
-                emailBuilder.ToString());
-
-
-            emailBuilder = new StringBuilder($"Hi {order.RecipientName},")
-                .AppendLine()
-                .AppendLine()
-                .AppendLine(
-                    $"{order.SenderName} has sent you some money. Please go to your nearest HonesRemit collection point to collect.")
-                .AppendLine()
-                .AppendLine("Details:")
-                .AppendLine($"Amount: {order.Currency} {order.Amount:N2}")
-                .AppendLine($"Reference: {orderReference}")
-                .AppendLine($"Sender: {order.SenderName} ({order.SenderEmail})")
-                .AppendLine()
-                .AppendLine("Regards,")
-                .AppendLine("HonesRemit Team");
-
-            await emailService.SendEmailAsync(order.RecipientEmail, $"You have received some money  - {orderReference}",
                 emailBuilder.ToString());
         }
         

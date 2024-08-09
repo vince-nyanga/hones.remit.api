@@ -2,7 +2,6 @@ using System.Net.Mail;
 using System.Reflection;
 using Hones.Remit.Api.Apis;
 using Hones.Remit.Api.BackgroundServices;
-using Hones.Remit.Api.Consumers.Commands;
 using Hones.Remit.Api.Data;
 using Hones.Remit.Api.Services;
 using MassTransit;
@@ -30,11 +29,6 @@ builder.Services.AddMassTransit(configurator =>
             h.Password("guest");
         });
         
-        cfg.ReceiveEndpoint("orders", e =>
-        {
-            e.ConfigureConsumer<CreateOrderConsumer>(context);
-        });
-        
         cfg.ConfigureEndpoints(context);
     });
 
@@ -44,8 +38,8 @@ builder.Services.AddHostedService<DatabaseMigrationsService>();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddProblemDetails();
-builder.Services.AddSingleton(new SmtpClient("localhost", 2525));
-builder.Services.AddSingleton<IEmailService, LocalSmtpEmailService>();
+builder.Services.AddScoped<SmtpClient>(_ => new SmtpClient("localhost", 2525));
+builder.Services.AddScoped<IEmailService, LocalSmtpEmailService>();
 
 
 var app = builder.Build();

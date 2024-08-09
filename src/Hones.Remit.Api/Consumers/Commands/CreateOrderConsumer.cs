@@ -51,7 +51,7 @@ public class CreateOrderConsumer : IConsumer<CreateOrder>
         await context.RespondAsync(new NewOrderResult
         {
             Id = order.PublicId,
-            Reference = Constants.Encoder.EncodeLong(order.Id).ToUpperInvariant(),
+            Reference = order.Id.Encode(),
             Status = order.Status.ToString(),
             DateCreatedUtc = order.DateCreatedUtc,
             SenderEmail = order.SenderEmail,
