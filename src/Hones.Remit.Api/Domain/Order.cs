@@ -47,6 +47,56 @@ public class Order
     public string Currency { get; init; }
     public decimal Amount { get; init; }
 
+    public ErrorOr<Updated> Pay()
+    {
+        if (Status != OrderStatus.Created)
+        {
+            return OrderErrors.InvalidStatus;
+        }
+        
+        Status = OrderStatus.Paid;
+        DatePaidUtc = DateTimeOffset.UtcNow;
+
+        return Result.Updated;
+    }
+
+    public ErrorOr<Updated> Expire()
+    {
+        if (Status != OrderStatus.Created)
+        {
+            return OrderErrors.InvalidStatus;
+        }
+        
+        Status = OrderStatus.Expired;
+        DateExpiredUtc = DateTimeOffset.UtcNow;
+        
+        return Result.Updated;
+    }
+
+    public ErrorOr<Updated> Cancel()
+    {
+        if (Status != OrderStatus.Created)
+        {
+            return OrderErrors.InvalidStatus;
+        }
+        
+        Status = OrderStatus.Cancelled;
+        DateCancelledUtc = DateTimeOffset.UtcNow;
+
+        return Result.Updated;
+    }
+
+    public ErrorOr<Updated> Collect()
+    {
+        if (Status != OrderStatus.Paid)
+        {
+            return OrderErrors.InvalidStatus;
+        }
+        Status = OrderStatus.Collected;
+        DateCollectedUtc = DateTimeOffset.UtcNow;
+        
+        return Result.Updated;
+    }
 
     public static ErrorOr<Order> Create(
         string senderEmail,
@@ -60,7 +110,7 @@ public class Order
         var validationErrors = new List<Error>();
         if (!SupportedCurrencies.Contains(currency))
         {
-           validationErrors.Add(OrderErrors.InvalidCurrency);
+           validationErrors.Add(OrderErrors.UnsupportedCurrency);
         }
 
         if (amount <= 0)
