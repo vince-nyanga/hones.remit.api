@@ -1,0 +1,15 @@
+services:
+  db:
+    image: postgres
+    restart: always
+    environment:
+      - POSTGRES_USER=hones-dev
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=RemitDb
+    ports:
+      - '9500:5432'
+  rabbitmq:
+    image: masstransit/rabbitmq:latest
+    ports:
+      - "5672:5672"
+      - "15672:15672"
