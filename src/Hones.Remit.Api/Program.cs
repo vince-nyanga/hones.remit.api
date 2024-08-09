@@ -1,8 +1,10 @@
 using System.Net.Mail;
+using System.Reflection;
 using Hones.Remit.Api.Apis;
 using Hones.Remit.Api.BackgroundServices;
 using Hones.Remit.Api.Data;
 using Hones.Remit.Api.Services;
+using MassTransit;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -10,6 +12,26 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddDbContext<OrdersDbContext>(options =>
 {
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"));
+});
+
+builder.Services.AddMassTransit(configurator =>
+{
+    configurator.SetKebabCaseEndpointNameFormatter();
+    
+    var entryAssembly = Assembly.GetEntryAssembly();
+    configurator.AddConsumers(entryAssembly);
+    
+    configurator.UsingRabbitMq((context, cfg) =>
+    {
+        cfg.Host("localhost", "/", h =>
+        {
+            h.Username("guest");
+            h.Password("guest");
+        });
+        
+        cfg.ConfigureEndpoints(context);
+    });
+
 });
 
 builder.Services.AddHostedService<DatabaseMigrationsService>();
