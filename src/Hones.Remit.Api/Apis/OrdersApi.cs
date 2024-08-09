@@ -34,35 +34,26 @@ public static class OrdersApi
             .WithName("AddOrder")
             .Accepts<CreateOrderDto>(contentType: "application/json")
             .Produces<OrderDto>(statusCode: (int)HttpStatusCode.Created)
-            .Produces<ProblemDetails>(statusCode: (int)HttpStatusCode.BadRequest)
             .WithOpenApi();
 
         group.MapPatch("/{orderId:guid}/expire", ApiHandler.ExpireOrder)
             .WithName("ExpireOrder")
-            .Produces((int)HttpStatusCode.OK)
-            .Produces<ProblemDetails>((int)HttpStatusCode.NotFound)
-            .Produces<ProblemDetails>((int)HttpStatusCode.BadRequest)
+            .Produces((int)HttpStatusCode.Accepted)
             .WithOpenApi();
 
         group.MapPatch("/{orderId:guid}/cancel", ApiHandler.CancelOrder)
             .WithName("CancelOrder")
-            .Produces((int)HttpStatusCode.OK)
-            .Produces<ProblemDetails>((int)HttpStatusCode.NotFound)
-            .Produces<ProblemDetails>((int)HttpStatusCode.BadRequest)
+            .Produces((int)HttpStatusCode.Accepted)
             .WithOpenApi();
 
         group.MapPatch("/{orderId:guid}/pay", ApiHandler.PayOrder)
             .WithName("PayOrder")
             .Produces((int)HttpStatusCode.Accepted)
-            .Produces<ProblemDetails>((int)HttpStatusCode.NotFound)
-            .Produces<ProblemDetails>((int)HttpStatusCode.BadRequest)
             .WithOpenApi();
 
         group.MapPatch("/{orderId:guid}/collect", ApiHandler.CollectOrder)
             .WithName("CollectOrder")
             .Produces((int)HttpStatusCode.Accepted)
-            .Produces<ProblemDetails>((int)HttpStatusCode.NotFound)
-            .Produces<ProblemDetails>((int)HttpStatusCode.BadRequest)
             .WithOpenApi();
     }
 
@@ -119,57 +110,23 @@ public static class OrdersApi
         }
 
         public static async Task<IResult> ExpireOrder(
-            OrdersDbContext dbContext,
-            IEmailService emailService,
+            ISendEndpointProvider sendEndpointProvider,
             Guid orderId,
             CancellationToken cancellationToken)
         {
-            var order = await dbContext.Orders
-                .FirstOrDefaultAsync(o => o.PublicId == orderId, cancellationToken);
-
-            if (order is null)
-            {
-                return Results.NotFound();
-            }
-
-            var result = order.Expire();
-            await dbContext.SaveChangesAsync(cancellationToken);
-
-            await result.SwitchAsync(
-                _ => SendOrderExpiredEmail(emailService, order),
-                _ => Task.CompletedTask);
-
-            return result.MatchFirst(
-                _ => Results.Ok(),
-                error => Results.BadRequest(error.Description)
-            );
+            var endpoint = await sendEndpointProvider.GetSendEndpoint(new Uri("queue:expire-order"));
+            await endpoint.Send(new ExpireOrder(orderId), cancellationToken);
+            return Results.Accepted();
         }
 
         public static async Task<IResult> CancelOrder(
-            OrdersDbContext dbContext,
-            IEmailService emailService,
+            ISendEndpointProvider sendEndpointProvider,
             Guid orderId,
             CancellationToken cancellationToken)
         {
-            var order = await dbContext.Orders
-                .FirstOrDefaultAsync(o => o.PublicId == orderId, cancellationToken);
-
-            if (order is null)
-            {
-                return Results.NotFound();
-            }
-
-            var result = order.Cancel();
-            await dbContext.SaveChangesAsync(cancellationToken);
-
-            await result.SwitchAsync(
-                _ => SendOrderCancelledEmail(emailService, order),
-                _ => Task.CompletedTask);
-
-            return result.MatchFirst(
-                _ => Results.Ok(),
-                error => Results.BadRequest(error.Description)
-            );
+            var endpoint = await sendEndpointProvider.GetSendEndpoint(new Uri("queue:cancel-order"));
+            await endpoint.Send(new CancelOrder(orderId), cancellationToken);
+            return Results.Accepted();
         }
         
         public static async Task<IResult> PayOrder(
@@ -190,46 +147,6 @@ public static class OrdersApi
             var endpoint = await sendEndpointProvider.GetSendEndpoint(new Uri("queue:collect-order"));
             await endpoint.Send(new CollectOrder(orderId), cancellationToken);
             return Results.Accepted();
-        }
-
-        private static async Task SendOrderExpiredEmail(IEmailService emailService, Order order)
-        {
-            var orderReference = EncodeId(order.Id);
-            var emailBuilder = new StringBuilder($"Hi {order.SenderName},")
-                .AppendLine()
-                .AppendLine()
-                .AppendLine("Unfortunately your order has expired.")
-                .AppendLine()
-                .AppendLine("Order Details:")
-                .AppendLine($"Amount: {order.Currency} {order.Amount:N2}")
-                .AppendLine($"Reference: {orderReference}")
-                .AppendLine($"Recipient: {order.RecipientName} ({order.RecipientEmail})")
-                .AppendLine()
-                .AppendLine("Regards,")
-                .AppendLine("HonesRemit Team");
-
-            await emailService.SendEmailAsync(order.SenderEmail, $"Order Expired - {orderReference}",
-                emailBuilder.ToString());
-        }
-        
-        private static Task SendOrderCancelledEmail(IEmailService emailService, Order order)
-        {
-            var orderReference = EncodeId(order.Id);
-            var emailBuilder = new StringBuilder($"Hi {order.SenderName},")
-                .AppendLine()
-                .AppendLine()
-                .AppendLine("You have successfully cancelled your order.")
-                .AppendLine()
-                .AppendLine("Order Details:")
-                .AppendLine($"Amount: {order.Currency} {order.Amount:N2}")
-                .AppendLine($"Reference: {orderReference}")
-                .AppendLine($"Recipient: {order.RecipientName} ({order.RecipientEmail})")
-                .AppendLine()
-                .AppendLine("Regards,")
-                .AppendLine("HonesRemit Team");
-
-            return emailService.SendEmailAsync(order.SenderEmail, $"Order Cancelled - {orderReference}",
-                emailBuilder.ToString());
         }
         
         private static OrderDto MapToDto(Order orderModel)
