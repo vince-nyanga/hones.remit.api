@@ -8,8 +8,15 @@ services:
       - POSTGRES_DB=RemitDb
     ports:
       - '9500:5432'
+    
   rabbitmq:
     image: masstransit/rabbitmq:latest
     ports:
       - "5672:5672"
       - "15672:15672"
+        
+  email:
+    image: rnwood/smtp4dev
+    ports:
+      - "9510:80"
+      - "2525:25"

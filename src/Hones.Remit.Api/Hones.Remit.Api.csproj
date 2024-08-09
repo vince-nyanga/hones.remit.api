@@ -2,6 +2,7 @@
   
   <ItemGroup>
     <PackageReference Include="ErrorOr" />
+    <PackageReference Include="Hashids.net" />
     <PackageReference Include="MassTransit.EntityFrameworkCore" />
     <PackageReference Include="MassTransit.Extensions.DependencyInjection" />
     <PackageReference Include="MassTransit.RabbitMQ" />

@@ -3,6 +3,7 @@ namespace Hones.Remit.Api.Apis.Dtos.Orders;
 public class OrderDto
 {
     public required Guid Id { get; init; }
+    public required string Reference { get; init; }
     public required string Status { get; init; }
     public required DateTimeOffset DateCreatedUtc { get; init; }
     public DateTimeOffset? DateExpiredUtc { get; init; }
