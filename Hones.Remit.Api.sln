@@ -1,0 +1,46 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{C3EC324C-CD04-42A6-B045-7244A51BACE1}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{08CACB6F-177C-4599-9624-C7F3CAEC09EE}"
+	ProjectSection(SolutionItems) = preProject
+		tests\Directory.Build.props = tests\Directory.Build.props
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "solution items", "solution items", "{AAE1987A-DF09-4DB1-A29E-A92C79559872}"
+	ProjectSection(SolutionItems) = preProject
+		Directory.Build.props = Directory.Build.props
+		Directory.Packages.props = Directory.Packages.props
+		docker-compose.yml = docker-compose.yml
+	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Hones.Remit.Api", "src\Hones.Remit.Api\Hones.Remit.Api.csproj", "{5D9364C2-B472-4583-A2C7-142722BAFF4F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Hones.Remit.Api.UnitTests", "tests\Hones.Remit.Api.UnitTests\Hones.Remit.Api.UnitTests.csproj", "{53960E14-8C95-4C77-B47C-DBC073989EE3}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{5D9364C2-B472-4583-A2C7-142722BAFF4F} = {C3EC324C-CD04-42A6-B045-7244A51BACE1}
+		{53960E14-8C95-4C77-B47C-DBC073989EE3} = {08CACB6F-177C-4599-9624-C7F3CAEC09EE}
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{5D9364C2-B472-4583-A2C7-142722BAFF4F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5D9364C2-B472-4583-A2C7-142722BAFF4F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5D9364C2-B472-4583-A2C7-142722BAFF4F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5D9364C2-B472-4583-A2C7-142722BAFF4F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{53960E14-8C95-4C77-B47C-DBC073989EE3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{53960E14-8C95-4C77-B47C-DBC073989EE3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{53960E14-8C95-4C77-B47C-DBC073989EE3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{53960E14-8C95-4C77-B47C-DBC073989EE3}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal

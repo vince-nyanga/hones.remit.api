@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Hones.Remit.Api\Hones.Remit.Api.csproj" />
+  </ItemGroup>
+</Project>
