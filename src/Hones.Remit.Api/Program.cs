@@ -2,6 +2,7 @@ using System.Net.Mail;
 using System.Reflection;
 using Hones.Remit.Api.Apis;
 using Hones.Remit.Api.BackgroundServices;
+using Hones.Remit.Api.Consumers.Commands;
 using Hones.Remit.Api.Data;
 using Hones.Remit.Api.Services;
 using MassTransit;
@@ -23,10 +24,15 @@ builder.Services.AddMassTransit(configurator =>
     
     configurator.UsingRabbitMq((context, cfg) =>
     {
-        cfg.Host("localhost", "/", h =>
+        cfg.Host("localhost", 9520, "/", h =>
         {
             h.Username("guest");
             h.Password("guest");
+        });
+        
+        cfg.ReceiveEndpoint("orders", e =>
+        {
+            e.ConfigureConsumer<CreateOrderConsumer>(context);
         });
         
         cfg.ConfigureEndpoints(context);

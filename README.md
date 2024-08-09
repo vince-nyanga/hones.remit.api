@@ -18,3 +18,9 @@ docker-compose up -d
 2. Run the API from the IDE of your choice.
 
 3. You can now access the API on `http://localhost:5238`.
+
+## RabbitMQ Management
+You can access the RabbitMQ management console on `http://localhost:15672`. The default username and password are `guest`.
+
+## Email Client
+You can access the email client on `http://localhost:9510/` to view emails sent by the API.

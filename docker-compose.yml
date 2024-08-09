@@ -8,14 +8,18 @@ services:
       - POSTGRES_DB=RemitDb
     ports:
       - '9500:5432'
-    
+    volumes:
+      - ./postgres/data:/var/lib/postgresql/data
+  
   rabbitmq:
-    image: masstransit/rabbitmq:latest
+    image: rabbitmq:management
     restart: unless-stopped
     ports:
-      - "5672:5672"
-      - "15672:15672"
-        
+      - '9520:5672'
+      - '15672:15672'
+    volumes:
+      - ./rabbitmq/data:/var/lib/rabbitmq/mnesia
+  
   email:
     image: rnwood/smtp4dev
     restart: unless-stopped

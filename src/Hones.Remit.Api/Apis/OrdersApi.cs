@@ -3,7 +3,10 @@ using System.Text;
 using Hones.Remit.Api.Apis.Dtos.Orders;
 using Hones.Remit.Api.Data;
 using Hones.Remit.Api.Domain;
+using Hones.Remit.Api.Messages.Commands;
+using Hones.Remit.Api.Messages.Results;
 using Hones.Remit.Api.Services;
+using MassTransit;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -88,33 +91,32 @@ public static class OrdersApi
 
         public static async Task<IResult> AddOrder(
             OrdersDbContext dbContext,
-            IEmailService emailService,
+            IRequestClient<CreateOrder> requestClient,
             CreateOrderDto createOrderDto,
             CancellationToken cancellationToken)
         {
-            var orderResult = Order.Create(
-                createOrderDto.SenderEmail,
-                createOrderDto.SenderName,
-                createOrderDto.RecipientEmail,
-                createOrderDto.RecipientName,
-                createOrderDto.Currency,
-                createOrderDto.Amount
-            );
-
-            if (orderResult.IsError)
+            var response = await requestClient.GetResponse<NewOrderResult, OrderCreationFailedResult>(new CreateOrder
             {
-                // TODO: return error details
-                return Results.BadRequest();
+                SenderEmail = createOrderDto.SenderEmail,
+                SenderName = createOrderDto.SenderName,
+                RecipientEmail = createOrderDto.RecipientEmail,
+                RecipientName = createOrderDto.RecipientName,
+                Currency = createOrderDto.Currency,
+                Amount = createOrderDto.Amount
+            }, cancellationToken);
+            
+            if (response.Is(out Response<NewOrderResult>? newOrderResult))
+            {
+                var order = newOrderResult.Message;
+                return Results.CreatedAtRoute("GetOrderById", new { orderId = order.Id }, order);
             }
-
-            var order = orderResult.Value;
-
-            await dbContext.Orders.AddAsync(order, cancellationToken);
-            await dbContext.SaveChangesAsync(cancellationToken);
-
-            await SendOrderCreatedEmail(emailService, order);
-
-            return Results.CreatedAtRoute("GetOrderById", new { orderId = order.PublicId }, MapToDto(order));
+           
+            if (response.Is(out Response<OrderCreationFailedResult>? failedResult))
+            {
+                return Results.BadRequest(failedResult.Message.Error);
+            }
+            
+            return Results.BadRequest("An error occurred while creating the order.");
         }
 
         public static async Task<IResult> ExpireOrder(
@@ -223,28 +225,6 @@ public static class OrdersApi
                 _ => Results.Ok(),
                 error => Results.BadRequest(error.Description)
             );
-        }
-
-        private static async Task SendOrderCreatedEmail(IEmailService emailService, Order order)
-        {
-            var orderReference = EncodeId(order.Id);
-            var emailBuilder = new StringBuilder($"Hi {order.SenderName},")
-                .AppendLine()
-                .AppendLine()
-                .AppendLine("Your order has been created successfully. Please make payment to complete the order.")
-                .AppendLine()
-                .AppendLine("Order Details:")
-                .AppendLine($"Amount: {order.Currency} {order.Amount:N2}")
-                .AppendLine($"Reference: {orderReference}")
-                .AppendLine($"Recipient: {order.RecipientName} ({order.RecipientEmail})")
-                .AppendLine()
-                .AppendLine("Thank you for using our service.")
-                .AppendLine()
-                .AppendLine("Regards,")
-                .AppendLine("HonesRemit Team");
-
-            await emailService.SendEmailAsync(order.SenderEmail, $"Order Created - {orderReference}",
-                emailBuilder.ToString());
         }
 
         private static async Task SendOrderExpiredEmail(IEmailService emailService, Order order)
