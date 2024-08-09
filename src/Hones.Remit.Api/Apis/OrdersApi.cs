@@ -60,7 +60,7 @@ public static class OrdersApi
 
         group.MapPatch("/{orderId:guid}/collect", ApiHandler.CollectOrder)
             .WithName("CollectOrder")
-            .Produces((int)HttpStatusCode.OK)
+            .Produces((int)HttpStatusCode.Accepted)
             .Produces<ProblemDetails>((int)HttpStatusCode.NotFound)
             .Produces<ProblemDetails>((int)HttpStatusCode.BadRequest)
             .WithOpenApi();
@@ -183,30 +183,13 @@ public static class OrdersApi
         }
 
         public static async Task<IResult> CollectOrder(
-            OrdersDbContext dbContext,
-            IEmailService emailService,
+            ISendEndpointProvider sendEndpointProvider,
             Guid orderId,
             CancellationToken cancellationToken)
         {
-            var order = await dbContext.Orders
-                .FirstOrDefaultAsync(o => o.PublicId == orderId, cancellationToken);
-
-            if (order is null)
-            {
-                return Results.NotFound();
-            }
-
-            var result = order.Collect();
-            await dbContext.SaveChangesAsync(cancellationToken);
-
-            await result.SwitchAsync(
-                _ => SendOrderCollectedEmails(emailService, order),
-                _ => Task.CompletedTask);
-
-            return result.MatchFirst(
-                _ => Results.Ok(),
-                error => Results.BadRequest(error.Description)
-            );
+            var endpoint = await sendEndpointProvider.GetSendEndpoint(new Uri("queue:collect-order"));
+            await endpoint.Send(new CollectOrder(orderId), cancellationToken);
+            return Results.Accepted();
         }
 
         private static async Task SendOrderExpiredEmail(IEmailService emailService, Order order)
@@ -246,42 +229,6 @@ public static class OrdersApi
                 .AppendLine("HonesRemit Team");
 
             return emailService.SendEmailAsync(order.SenderEmail, $"Order Cancelled - {orderReference}",
-                emailBuilder.ToString());
-        }
-        
-        private static async Task SendOrderCollectedEmails(IEmailService emailService, Order order)
-        {
-            var orderReference = EncodeId(order.Id);
-            var emailBuilder = new StringBuilder($"Hi {order.SenderName},")
-                .AppendLine()
-                .AppendLine()
-                .AppendLine($"{order.RecipientName} has successfully collected the money.")
-                .AppendLine()
-                .AppendLine("Order Details:")
-                .AppendLine($"Amount: {order.Currency} {order.Amount:N2}")
-                .AppendLine($"Reference: {orderReference}")
-                .AppendLine($"Recipient: {order.RecipientName} ({order.RecipientEmail})")
-                .AppendLine()
-                .AppendLine("Regards,")
-                .AppendLine("HonesRemit Team");
-
-            await emailService.SendEmailAsync(order.SenderEmail, $"Order collected - {orderReference}",
-                emailBuilder.ToString());
-
-            emailBuilder = new StringBuilder($"Hi {order.RecipientName},")
-                .AppendLine()
-                .AppendLine()
-                .AppendLine($"You have successfully collected the money sent by {order.SenderName}.")
-                .AppendLine()
-                .AppendLine("Details:")
-                .AppendLine($"Amount: {order.Currency} {order.Amount:N2}")
-                .AppendLine($"Reference: {orderReference}")
-                .AppendLine($"Sender: {order.SenderName} ({order.SenderEmail})")
-                .AppendLine()
-                .AppendLine("Regards,")
-                .AppendLine("HonesRemit Team");
-
-            await emailService.SendEmailAsync(order.RecipientEmail, $"Money collected  - {orderReference}",
                 emailBuilder.ToString());
         }
         
