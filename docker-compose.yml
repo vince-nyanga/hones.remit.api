@@ -1,7 +1,7 @@
 services:
   db:
     image: postgres
-    restart: always
+    restart: unless-stopped
     environment:
       - POSTGRES_USER=hones-dev
       - POSTGRES_PASSWORD=password
@@ -11,12 +11,14 @@ services:
     
   rabbitmq:
     image: masstransit/rabbitmq:latest
+    restart: unless-stopped
     ports:
       - "5672:5672"
       - "15672:15672"
         
   email:
     image: rnwood/smtp4dev
+    restart: unless-stopped
     ports:
       - "9510:80"
       - "2525:25"
