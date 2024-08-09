@@ -40,11 +40,11 @@ public class Order
     public DateTimeOffset? DatePaidUtc { get; private set; }
     public DateTimeOffset? DateCancelledUtc { get; private set; }
     public DateTimeOffset? DateCollectedUtc { get; private set; }
-    public string SenderEmail { get; init; }
-    public string SenderName { get; init; } 
-    public string RecipientEmail { get; init; }
-    public string RecipientName { get; init; }
-    public string Currency { get; init; }
+    public string SenderEmail { get; init; } = null!;
+    public string SenderName { get; init; } = null!;
+    public string RecipientEmail { get; init; } = null!;
+    public string RecipientName { get; init; } = null!;
+    public string Currency { get; init; } = null!;
     public decimal Amount { get; init; }
 
     public ErrorOr<Updated> Pay()

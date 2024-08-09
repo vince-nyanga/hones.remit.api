@@ -1,3 +1,4 @@
+using Hones.Remit.Api.Apis;
 using Hones.Remit.Api.BackgroundServices;
 using Hones.Remit.Api.Data;
 using Microsoft.EntityFrameworkCore;
@@ -6,13 +7,15 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddDbContext<OrdersDbContext>(options =>
 {
-    options.UseNpgsql( builder.Configuration.GetConnectionString("DefaultConnection"));
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"));
 });
 
 builder.Services.AddHostedService<DatabaseMigrationsService>();
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+builder.Services.AddProblemDetails();
+
 
 var app = builder.Build();
 
@@ -24,25 +27,8 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-var summaries = new[]
-{
-    "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-};
-
-app.MapGet("/weatherforecast", () =>
-{
-    var forecast =  Enumerable.Range(1, 5).Select(index =>
-        new WeatherForecast
-        (
-            DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-            Random.Shared.Next(-20, 55),
-            summaries[Random.Shared.Next(summaries.Length)]
-        ))
-        .ToArray();
-    return forecast;
-})
-.WithName("GetWeatherForecast")
-.WithOpenApi();
+app.MapGroup("/api")
+    .MapOrders();
 
 app.Run();
 
