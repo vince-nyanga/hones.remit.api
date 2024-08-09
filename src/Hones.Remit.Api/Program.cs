@@ -3,6 +3,7 @@ using System.Reflection;
 using Hones.Remit.Api.Apis;
 using Hones.Remit.Api.BackgroundServices;
 using Hones.Remit.Api.Data;
+using Hones.Remit.Api.Filters;
 using Hones.Remit.Api.Services;
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
@@ -29,6 +30,10 @@ builder.Services.AddMassTransit(configurator =>
             h.Password("guest");
         });
         
+        cfg.UseSendFilter<CreateOrderFilter>(context);
+        cfg.UseSendFilter(typeof(SendLoggerFilter<>), context);
+        cfg.UsePublishFilter(typeof(PublishLoggerFilter<>), context);
+        cfg.UseConsumeFilter(typeof(ConsumeLoggerFilter<>), context);
         cfg.ConfigureEndpoints(context);
     });
 
