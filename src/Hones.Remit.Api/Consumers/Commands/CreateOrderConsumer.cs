@@ -12,7 +12,9 @@ public class CreateOrderConsumer : IConsumer<CreateOrder>
     private readonly ILogger<CreateOrderConsumer> _logger;
     private readonly OrdersDbContext _dbContext;
 
-    public CreateOrderConsumer(ILogger<CreateOrderConsumer> logger, OrdersDbContext dbContext)
+    public CreateOrderConsumer(
+        ILogger<CreateOrderConsumer> logger, 
+        OrdersDbContext dbContext)
     {
         _logger = logger;
         _dbContext = dbContext;
@@ -44,9 +46,6 @@ public class CreateOrderConsumer : IConsumer<CreateOrder>
         var order = orderResult.Value;
 
         await _dbContext.Orders.AddAsync(order, context.CancellationToken);
-        await _dbContext.SaveChangesAsync(context.CancellationToken);
-        
-        _logger.LogInformation("Order created: {@Order}", order);
         
         await context.RespondAsync(new NewOrderResult
         {
@@ -62,6 +61,18 @@ public class CreateOrderConsumer : IConsumer<CreateOrder>
             Amount = order.Amount
         });
 
-        await context.Publish(new OrderCreated(order.PublicId), context.CancellationToken);
+        await  context.Publish(new OrderCreated(order.PublicId), context.CancellationToken);
+        
+         await _dbContext.SaveChangesAsync(context.CancellationToken);
+        _logger.LogInformation("Order created: {@Order}", order);
+    }
+}
+
+public class CreateOrderConsumerDefinition : ConsumerDefinition<CreateOrderConsumer>
+{
+    protected override void ConfigureConsumer(IReceiveEndpointConfigurator endpointConfigurator, IConsumerConfigurator<CreateOrderConsumer> consumerConfigurator,
+        IRegistrationContext context)
+    {
+        endpointConfigurator.UseEntityFrameworkOutbox<OrdersDbContext>(context);
     }
 }

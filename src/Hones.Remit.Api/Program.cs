@@ -17,17 +17,19 @@ builder.Services.AddDbContext<OrdersDbContext>(options =>
 
 builder.Services.AddMassTransit(configurator =>
 {
+    configurator.AddEntityFrameworkOutbox<OrdersDbContext>(x =>
+    {
+        x.DuplicateDetectionWindow = TimeSpan.FromMinutes(5);
+        x.UsePostgres();
+        
+        // enable if you want to use outbox EVERYWHERE!
+        //x.UseBusOutbox();
+    });
+    
     configurator.SetKebabCaseEndpointNameFormatter();
     
     var entryAssembly = Assembly.GetEntryAssembly();
     configurator.AddConsumers(entryAssembly);
-    
-    configurator.AddEntityFrameworkOutbox<OrdersDbContext>(x =>
-    {
-        x.QueryDelay = TimeSpan.FromSeconds(5);
-        x.UsePostgres();
-        x.UseBusOutbox();
-    });
     
     configurator.UsingRabbitMq((context, cfg) =>
     {
@@ -41,6 +43,7 @@ builder.Services.AddMassTransit(configurator =>
         cfg.UseSendFilter(typeof(SendLoggerFilter<>), context);
         cfg.UsePublishFilter(typeof(PublishLoggerFilter<>), context);
         cfg.UseConsumeFilter(typeof(ConsumeLoggerFilter<>), context);
+        
         cfg.ConfigureEndpoints(context);
     });
 

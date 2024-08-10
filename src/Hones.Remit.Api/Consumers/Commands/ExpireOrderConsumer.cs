@@ -32,8 +32,18 @@ public class ExpireOrderConsumer : IConsumer<ExpireOrder>
         {
             return;
         }
-
-        await _dbContext.SaveChangesAsync(context.CancellationToken);
+        
         await context.Publish(new OrderExpired(order.PublicId), context.CancellationToken);
+        
+        await _dbContext.SaveChangesAsync(context.CancellationToken);
+    }
+}
+
+public class ExpireOrderConsumerDefinition : ConsumerDefinition<ExpireOrderConsumer>
+{
+    protected override void ConfigureConsumer(IReceiveEndpointConfigurator endpointConfigurator, IConsumerConfigurator<ExpireOrderConsumer> consumerConfigurator,
+        IRegistrationContext context)
+    {
+        endpointConfigurator.UseEntityFrameworkOutbox<OrdersDbContext>(context);
     }
 }

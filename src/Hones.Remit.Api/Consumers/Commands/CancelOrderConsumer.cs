@@ -32,7 +32,17 @@ public class CancelOrderConsumer : IConsumer<CancelOrder>
             return;
         }
         
-        await _dbContext.SaveChangesAsync(context.CancellationToken);
         await context.Publish(new OrderCancelled(order.PublicId), context.CancellationToken);
+        
+        await _dbContext.SaveChangesAsync(context.CancellationToken);
+    }
+}
+
+public class CancelOrderConsumerDefinition : ConsumerDefinition<CancelOrderConsumer>
+{
+    protected override void ConfigureConsumer(IReceiveEndpointConfigurator endpointConfigurator, IConsumerConfigurator<CancelOrderConsumer> consumerConfigurator,
+        IRegistrationContext context)
+    {
+        endpointConfigurator.UseEntityFrameworkOutbox<OrdersDbContext>(context);
     }
 }

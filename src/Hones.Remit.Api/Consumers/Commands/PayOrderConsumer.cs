@@ -35,14 +35,23 @@ public class PayOrderConsumer : IConsumer<PayOrder>
 
         if (!result.IsError)
         {
+            await context.Publish(new OrderPaid(order.PublicId));
+            
             await _dbContext.SaveChangesAsync();
             _logger.LogInformation("Order paid: {OrderId}", context.Message.OrderId);
-            
-            await context.Publish(new OrderPaid(order.PublicId));
             return;
         }
         
         _logger.LogError("Order payment failed: {OrderId}", context.Message.OrderId);
         // TODO: publish OrderPaymentFailed event
+    }
+}
+
+public class PayOrderConsumerDefinition : ConsumerDefinition<PayOrderConsumer>
+{
+    protected override void ConfigureConsumer(IReceiveEndpointConfigurator endpointConfigurator, IConsumerConfigurator<PayOrderConsumer> consumerConfigurator,
+        IRegistrationContext context)
+    {
+        endpointConfigurator.UseEntityFrameworkOutbox<OrdersDbContext>(context);
     }
 }

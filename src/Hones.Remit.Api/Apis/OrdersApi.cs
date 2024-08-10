@@ -1,11 +1,9 @@
 using System.Net;
-using System.Text;
 using Hones.Remit.Api.Apis.Dtos.Orders;
 using Hones.Remit.Api.Data;
 using Hones.Remit.Api.Domain;
 using Hones.Remit.Api.Messages.Commands;
 using Hones.Remit.Api.Messages.Results;
-using Hones.Remit.Api.Services;
 using MassTransit;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;

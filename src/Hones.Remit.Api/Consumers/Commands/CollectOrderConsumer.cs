@@ -33,7 +33,17 @@ public class CollectOrderConsumer : IConsumer<CollectOrder>
             return;
         }
 
-        await _dbContext.SaveChangesAsync(context.CancellationToken);
         await context.Publish(new OrderCollected(order.PublicId), context.CancellationToken);
+        
+        await _dbContext.SaveChangesAsync(context.CancellationToken);
+    }
+}
+
+public class CollectOrderConsumerDefinition : ConsumerDefinition<CollectOrderConsumer>
+{
+    protected override void ConfigureConsumer(IReceiveEndpointConfigurator endpointConfigurator, IConsumerConfigurator<CollectOrderConsumer> consumerConfigurator,
+        IRegistrationContext context)
+    {
+        endpointConfigurator.UseEntityFrameworkOutbox<OrdersDbContext>(context);
     }
 }
