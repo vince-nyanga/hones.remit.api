@@ -4,6 +4,10 @@ This a simple RESTful API built for my blog series on MassTransit.
 HonesRemit is a fictitious money transfer service that allows users to send money to their loved ones in other countries. 
 This API was built to simulate the backend of the HonesRemit service.
 
+> [!NOTE] Note
+> This project is built to demonstrate how to use MassTransit in a .NET Core application. It is not meant to be used in a production environment. There are certain decisions 
+> made in the project that are not best practices, or at least don't make sense for a production application.
+
 ## Running the project
 To run the project, you need to have the following installed on your machine:
 - .NET 8 or later
