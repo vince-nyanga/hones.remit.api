@@ -2,8 +2,11 @@ using System.Net;
 using Hones.Remit.Api.Apis.Dtos.Orders;
 using Hones.Remit.Api.Data;
 using Hones.Remit.Api.Domain;
-using Hones.Remit.Api.Messages.Commands;
-using Hones.Remit.Api.Messages.Results;
+using Hones.Remit.Api.MassTransit.Commands.CancelOrder;
+using Hones.Remit.Api.MassTransit.Events.OrderCollected;
+using Hones.Remit.Api.MassTransit.Events.OrderExpired;
+using Hones.Remit.Api.MassTransit.Events.OrderPaid;
+using Hones.Remit.Api.MassTransit.Requests.CreateOrder;
 using MassTransit;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -32,11 +35,14 @@ public static class OrdersApi
             .WithName("AddOrder")
             .Accepts<CreateOrderDto>(contentType: "application/json")
             .Produces<OrderDto>(statusCode: (int)HttpStatusCode.Created)
+            .Produces<ProblemDetails>((int)HttpStatusCode.BadRequest)
             .WithOpenApi();
 
         group.MapPatch("/{orderId:guid}/expire", ApiHandler.ExpireOrder)
             .WithName("ExpireOrder")
-            .Produces((int)HttpStatusCode.Accepted)
+            .Produces((int)HttpStatusCode.OK)
+            .Produces<ProblemDetails>((int)HttpStatusCode.BadRequest)
+            .Produces<ProblemDetails>((int)HttpStatusCode.NotFound)
             .WithOpenApi();
 
         group.MapPatch("/{orderId:guid}/cancel", ApiHandler.CancelOrder)
@@ -46,12 +52,16 @@ public static class OrdersApi
 
         group.MapPatch("/{orderId:guid}/pay", ApiHandler.PayOrder)
             .WithName("PayOrder")
-            .Produces((int)HttpStatusCode.Accepted)
+            .Produces((int)HttpStatusCode.OK)
+            .Produces<ProblemDetails>((int)HttpStatusCode.BadRequest)
+            .Produces<ProblemDetails>((int)HttpStatusCode.NotFound)
             .WithOpenApi();
 
         group.MapPatch("/{orderId:guid}/collect", ApiHandler.CollectOrder)
             .WithName("CollectOrder")
-            .Produces((int)HttpStatusCode.Accepted)
+            .Produces((int)HttpStatusCode.OK)
+            .Produces<ProblemDetails>((int)HttpStatusCode.BadRequest)
+            .Produces<ProblemDetails>((int)HttpStatusCode.NotFound)
             .WithOpenApi();
     }
 
@@ -83,6 +93,7 @@ public static class OrdersApi
             CreateOrderDto createOrderDto,
             CancellationToken cancellationToken)
         {
+            // This is an example of how to implement a request/response pattern using MassTransit
             var response = await requestClient.GetResponse<NewOrderResult, OrderCreationFailedResult>(new CreateOrder
             {
                 SenderEmail = createOrderDto.SenderEmail,
@@ -108,43 +119,92 @@ public static class OrdersApi
         }
 
         public static async Task<IResult> ExpireOrder(
-            ISendEndpointProvider sendEndpointProvider,
+            OrdersDbContext dbContext,
+            IPublishEndpoint publishEndpoint,
             Guid orderId,
             CancellationToken cancellationToken)
         {
-            var endpoint = await sendEndpointProvider.GetSendEndpoint(new Uri("queue:expire-order"));
-            await endpoint.Send(new ExpireOrder(orderId), cancellationToken);
-            return Results.Accepted();
+            var order = await dbContext.Orders
+                .FirstOrDefaultAsync(x => x.PublicId == orderId, cancellationToken);
+
+            if (order is null)
+            {
+                return Results.NotFound();
+            }
+
+            var result = order.Expire();
+
+            if (result.IsError)
+            {
+                return Results.BadRequest(result.FirstError.Description);
+            }
+            await publishEndpoint.Publish(new OrderExpired(order.PublicId), cancellationToken);
+            await dbContext.SaveChangesAsync(cancellationToken);
+            return Results.Ok();
         }
 
+        
         public static async Task<IResult> CancelOrder(
             ISendEndpointProvider sendEndpointProvider,
             Guid orderId,
             CancellationToken cancellationToken)
         {
+            // This is an example of how to send a message to a specific endpoint instead of publishing it to an exchange (RabbitMQ)
             var endpoint = await sendEndpointProvider.GetSendEndpoint(new Uri("queue:cancel-order"));
             await endpoint.Send(new CancelOrder(orderId), cancellationToken);
             return Results.Accepted();
         }
         
         public static async Task<IResult> PayOrder(
-            ISendEndpointProvider sendEndpointProvider,
+            OrdersDbContext dbContext,
+            IPublishEndpoint publishEndpoint,
             Guid orderId,
             CancellationToken cancellationToken)
         {
-            var endpoint = await sendEndpointProvider.GetSendEndpoint(new Uri("queue:pay-order"));
-            await endpoint.Send(new PayOrder(orderId), cancellationToken);
-            return Results.Accepted();
+            var order = await dbContext.Orders
+                .FirstOrDefaultAsync(x => x.PublicId == orderId, cancellationToken);
+
+            if (order is null)
+            {
+                return Results.NotFound();
+            }
+
+            var result = order.Pay();
+
+            if (result.IsError)
+            {
+                return Results.BadRequest(result.FirstError.Description);
+            }
+
+            await publishEndpoint.Publish(new OrderPaid(order.PublicId), cancellationToken);
+            await dbContext.SaveChangesAsync(cancellationToken);
+            return Results.Ok();
         }
 
         public static async Task<IResult> CollectOrder(
-            ISendEndpointProvider sendEndpointProvider,
+            OrdersDbContext dbContext,
+            IPublishEndpoint publishEndpoint,
             Guid orderId,
             CancellationToken cancellationToken)
         {
-            var endpoint = await sendEndpointProvider.GetSendEndpoint(new Uri("queue:collect-order"));
-            await endpoint.Send(new CollectOrder(orderId), cancellationToken);
-            return Results.Accepted();
+            var order = await dbContext.Orders
+                .FirstOrDefaultAsync(x => x.PublicId == orderId, cancellationToken);
+
+            if (order is null)
+            {
+                return Results.NotFound();
+            }
+
+            var result = order.Collect();
+
+            if (result.IsError)
+            {
+                return Results.BadRequest(result.FirstError.Description);
+            }
+
+            await publishEndpoint.Publish(new OrderCollected(order.PublicId), cancellationToken);
+            await dbContext.SaveChangesAsync(cancellationToken);
+            return Results.Ok();
         }
         
         private static OrderDto MapToDto(Order orderModel)

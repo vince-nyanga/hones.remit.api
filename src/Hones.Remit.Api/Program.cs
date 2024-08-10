@@ -3,7 +3,8 @@ using System.Reflection;
 using Hones.Remit.Api.Apis;
 using Hones.Remit.Api.BackgroundServices;
 using Hones.Remit.Api.Data;
-using Hones.Remit.Api.Filters;
+using Hones.Remit.Api.MassTransit;
+using Hones.Remit.Api.MassTransit.Filters;
 using Hones.Remit.Api.Services;
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
@@ -15,39 +16,7 @@ builder.Services.AddDbContext<OrdersDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"));
 });
 
-builder.Services.AddMassTransit(configurator =>
-{
-    configurator.AddEntityFrameworkOutbox<OrdersDbContext>(x =>
-    {
-        x.DuplicateDetectionWindow = TimeSpan.FromMinutes(5);
-        x.UsePostgres();
-        
-        // enable if you want to use outbox EVERYWHERE!
-        //x.UseBusOutbox();
-    });
-    
-    configurator.SetKebabCaseEndpointNameFormatter();
-    
-    var entryAssembly = Assembly.GetEntryAssembly();
-    configurator.AddConsumers(entryAssembly);
-    
-    configurator.UsingRabbitMq((context, cfg) =>
-    {
-        cfg.Host("localhost", 9520, "/", h =>
-        {
-            h.Username("guest");
-            h.Password("guest");
-        });
-        
-        cfg.UseSendFilter<CreateOrderFilter>(context);
-        cfg.UseSendFilter(typeof(SendLoggerFilter<>), context);
-        cfg.UsePublishFilter(typeof(PublishLoggerFilter<>), context);
-        cfg.UseConsumeFilter(typeof(ConsumeLoggerFilter<>), context);
-        
-        cfg.ConfigureEndpoints(context);
-    });
-
-});
+builder.ConfigureMassTransit();
 
 builder.Services.AddHostedService<DatabaseMigrationsService>();
 builder.Services.AddEndpointsApiExplorer();
