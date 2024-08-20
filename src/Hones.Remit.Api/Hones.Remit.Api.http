@@ -1,6 +1,1 @@
 @Hones.Remit.Api_HostAddress = http://localhost:5238
-
-GET {{Hones.Remit.Api_HostAddress}}/weatherforecast/
-Accept: application/json
-
-###

@@ -1,8 +1,12 @@
 using System.Net.Mail;
+using System.Reflection;
 using Hones.Remit.Api.Apis;
 using Hones.Remit.Api.BackgroundServices;
 using Hones.Remit.Api.Data;
+using Hones.Remit.Api.MassTransit;
+using Hones.Remit.Api.MassTransit.Filters;
 using Hones.Remit.Api.Services;
+using MassTransit;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -12,12 +16,14 @@ builder.Services.AddDbContext<OrdersDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"));
 });
 
+builder.ConfigureMassTransit();
+
 builder.Services.AddHostedService<DatabaseMigrationsService>();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddProblemDetails();
-builder.Services.AddSingleton(new SmtpClient("localhost", 2525));
-builder.Services.AddSingleton<IEmailService, LocalSmtpEmailService>();
+builder.Services.AddScoped<SmtpClient>(_ => new SmtpClient("localhost", 2525));
+builder.Services.AddScoped<IEmailService, LocalSmtpEmailService>();
 
 
 var app = builder.Build();

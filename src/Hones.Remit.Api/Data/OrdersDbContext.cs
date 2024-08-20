@@ -1,4 +1,5 @@
 using Hones.Remit.Api.Domain;
+using MassTransit;
 using Microsoft.EntityFrameworkCore;
 
 namespace Hones.Remit.Api.Data;
@@ -19,6 +20,9 @@ public class OrdersDbContext : DbContext
         modelBuilder.HasDefaultSchema(Schema);
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(OrdersDbContext).Assembly);
         
+        modelBuilder.AddInboxStateEntity();
+        modelBuilder.AddOutboxStateEntity();
+        modelBuilder.AddOutboxMessageEntity();
         base.OnModelCreating(modelBuilder);
     }
 }
