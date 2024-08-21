@@ -24,6 +24,5 @@ public class OrderState : SagaStateMachineInstance
         public const string ReadyForCollection = "ReadyForCollection";
         public const string Collected = "Collected";
         public const string Expired = "Expired";
-        public const string ValidationSucceeded = "ValidationSucceeded";
     }
 }
