@@ -39,6 +39,8 @@ internal static class BuilderExtensions
                     h.Username("guest");
                     h.Password("guest");
                 });
+
+                cfg.UseInMemoryScheduler();
         
                 cfg.UseSendFilter<CreateOrderFilter>(context);
                 cfg.UseSendFilter(typeof(SendLoggerFilter<>), context);

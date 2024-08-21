@@ -38,13 +38,6 @@ public static class OrdersApi
             .Produces<ProblemDetails>((int)HttpStatusCode.BadRequest)
             .WithOpenApi();
 
-        group.MapPatch("/{orderId:guid}/expire", ApiHandler.ExpireOrder)
-            .WithName("ExpireOrder")
-            .Produces((int)HttpStatusCode.OK)
-            .Produces<ProblemDetails>((int)HttpStatusCode.BadRequest)
-            .Produces<ProblemDetails>((int)HttpStatusCode.NotFound)
-            .WithOpenApi();
-
         group.MapPatch("/{orderId:guid}/cancel", ApiHandler.CancelOrder)
             .WithName("CancelOrder")
             .Produces((int)HttpStatusCode.Accepted)
@@ -117,32 +110,6 @@ public static class OrdersApi
             
             return Results.BadRequest("An error occurred while creating the order.");
         }
-
-        public static async Task<IResult> ExpireOrder(
-            OrdersDbContext dbContext,
-            IPublishEndpoint publishEndpoint,
-            Guid orderId,
-            CancellationToken cancellationToken)
-        {
-            var order = await dbContext.Orders
-                .FirstOrDefaultAsync(x => x.PublicId == orderId, cancellationToken);
-
-            if (order is null)
-            {
-                return Results.NotFound();
-            }
-
-            var result = order.Expire();
-
-            if (result.IsError)
-            {
-                return Results.BadRequest(result.FirstError.Description);
-            }
-            await publishEndpoint.Publish(new OrderExpired(order.PublicId), cancellationToken);
-            await dbContext.SaveChangesAsync(cancellationToken);
-            return Results.Ok();
-        }
-
         
         public static async Task<IResult> CancelOrder(
             ISendEndpointProvider sendEndpointProvider,

@@ -4,20 +4,20 @@ using Hones.Remit.Api.Services;
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
 
-namespace Hones.Remit.Api.MassTransit.Events.OrderExpired;
+namespace Hones.Remit.Api.MassTransit.Events.OrderTimedOut;
 
-public class OrderExpiredConsumer : IConsumer<OrderExpired>
+public class OrderTimedOutConsumer : IConsumer<OrderTimedOut>
 {
     private readonly OrdersDbContext _dbContext;
     private readonly IEmailService _emailService;
 
-    public OrderExpiredConsumer(OrdersDbContext dbContext, IEmailService emailService)
+    public OrderTimedOutConsumer(OrdersDbContext dbContext, IEmailService emailService)
     {
         _dbContext = dbContext;
         _emailService = emailService;
     }
 
-    public async Task Consume(ConsumeContext<OrderExpired> context)
+    public async Task Consume(ConsumeContext<OrderTimedOut> context)
     {
         var order = await _dbContext.Orders
             .FirstOrDefaultAsync(x => x.PublicId == context.Message.OrderId,
@@ -28,6 +28,10 @@ public class OrderExpiredConsumer : IConsumer<OrderExpired>
             return;
         }
 
+        order.Expire();
+        await _dbContext.SaveChangesAsync();
+
+        // ideally, we should publish an event to that outbox can do its job... We can just be lazy for now.
         var orderReference = order.Id.Encode();
         var emailBuilder = new StringBuilder($"Hi {order.SenderName},")
             .AppendLine()
@@ -44,5 +48,16 @@ public class OrderExpiredConsumer : IConsumer<OrderExpired>
 
         await _emailService.SendEmailAsync(order.SenderEmail, $"Order Expired - {orderReference}",
             emailBuilder.ToString());
+    }
+}
+
+public class OrderExpiredConsumerDefinition : ConsumerDefinition<OrderTimedOutConsumer>
+{
+    public OrderExpiredConsumerDefinition()
+    {
+        Endpoint(x =>
+        {
+            x.Name = "order-timed-out-email-sender";
+        });
     }
 }
