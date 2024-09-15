@@ -4,20 +4,20 @@ using Hones.Remit.Api.Services;
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
 
-namespace Hones.Remit.Api.MassTransit.Events.OrderPaid;
+namespace Hones.Remit.Api.MassTransit.Events.OrderReadyForCollection;
 
-public class OrderPaidRecipientEmailNotifier : IConsumer<OrderPaid>
+public class OrderReadyForCollectionSenderEmailNotifier : IConsumer<OrderReadyForCollection>
 {
     private readonly OrdersDbContext _dbContext;
     private readonly IEmailService _emailService;
 
-    public OrderPaidRecipientEmailNotifier(OrdersDbContext dbContext, IEmailService emailService)
+    public OrderReadyForCollectionSenderEmailNotifier(OrdersDbContext dbContext, IEmailService emailService)
     {
         _dbContext = dbContext;
         _emailService = emailService;
     }
 
-    public async Task Consume(ConsumeContext<OrderPaid> context)
+    public async Task Consume(ConsumeContext<OrderReadyForCollection> context)
     {
         var order = await _dbContext.Orders
             .FirstOrDefaultAsync(x => x.PublicId == context.Message.OrderId,
@@ -29,21 +29,20 @@ public class OrderPaidRecipientEmailNotifier : IConsumer<OrderPaid>
         }
 
         var orderReference = order.Id.Encode();
-        var emailBuilder = new StringBuilder($"Hi {order.RecipientName},")
+        var emailBuilder = new StringBuilder($"Hi {order.SenderName},")
             .AppendLine()
             .AppendLine()
-            .AppendLine(
-                $"{order.SenderName} has sent you some money. Please go to your nearest HonesRemit collection point to collect.")
+            .AppendLine("Thank you for your payment. Your order is now ready for collection.")
             .AppendLine()
-            .AppendLine("Details:")
+            .AppendLine("Order Details:")
             .AppendLine($"Amount: {order.Currency} {order.Amount:N2}")
             .AppendLine($"Reference: {orderReference}")
-            .AppendLine($"Sender: {order.SenderName} ({order.SenderEmail})")
+            .AppendLine($"Recipient: {order.RecipientName} ({order.RecipientEmail})")
             .AppendLine()
             .AppendLine("Regards,")
             .AppendLine("HonesRemit Team");
 
-        await _emailService.SendEmailAsync(order.RecipientEmail, $"You have received some money  - {orderReference}",
+        await _emailService.SendEmailAsync(order.SenderEmail, $"Order ready for collection - {orderReference}",
             emailBuilder.ToString());
     }
 }

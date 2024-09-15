@@ -1,12 +1,9 @@
 using System.Net.Mail;
-using System.Reflection;
 using Hones.Remit.Api.Apis;
 using Hones.Remit.Api.BackgroundServices;
 using Hones.Remit.Api.Data;
 using Hones.Remit.Api.MassTransit;
-using Hones.Remit.Api.MassTransit.Filters;
 using Hones.Remit.Api.Services;
-using MassTransit;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);

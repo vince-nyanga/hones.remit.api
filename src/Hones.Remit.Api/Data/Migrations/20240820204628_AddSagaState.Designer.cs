@@ -3,6 +3,7 @@ using System;
 using Hones.Remit.Api.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Hones.Remit.Api.Data.Migrations
 {
     [DbContext(typeof(OrdersDbContext))]
-    partial class OrdersDbContextModelSnapshot : ModelSnapshot
+    [Migration("20240820204628_AddSagaState")]
+    partial class AddSagaState
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -121,12 +124,6 @@ namespace Hones.Remit.Api.Data.Migrations
 
                     b.Property<DateTimeOffset?>("DateReadyForCollection")
                         .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTimeOffset?>("DateValidationSucceededUtc")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("PaymentTimeoutTokenId")
-                        .HasColumnType("uuid");
 
                     b.HasKey("OrderId");
 

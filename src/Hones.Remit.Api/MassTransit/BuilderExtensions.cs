@@ -1,6 +1,7 @@
 using System.Reflection;
 using Hones.Remit.Api.Data;
 using Hones.Remit.Api.MassTransit.Filters;
+using Hones.Remit.Api.MassTransit.Sagas.StateMachine;
 using MassTransit;
 
 namespace Hones.Remit.Api.MassTransit;
@@ -18,6 +19,13 @@ internal static class BuilderExtensions
                 x.UsePostgres();
                 x.UseBusOutbox();
             });
+
+            configurator.AddSagaStateMachine<OrderStateMachine, OrderState>()
+                .EntityFrameworkRepository(repo =>
+                {
+                    repo.ConcurrencyMode = ConcurrencyMode.Optimistic;
+                    repo.ExistingDbContext<OrdersDbContext>();
+                });
     
             configurator.SetKebabCaseEndpointNameFormatter();
     
@@ -31,6 +39,8 @@ internal static class BuilderExtensions
                     h.Username("guest");
                     h.Password("guest");
                 });
+
+                cfg.UseInMemoryScheduler();
         
                 cfg.UseSendFilter<CreateOrderFilter>(context);
                 cfg.UseSendFilter(typeof(SendLoggerFilter<>), context);
