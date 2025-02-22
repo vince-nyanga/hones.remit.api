@@ -12,6 +12,10 @@ internal static class BuilderExtensions
     {
         builder.Services.AddMassTransit(configurator =>
         {
+            configurator.SetKebabCaseEndpointNameFormatter();
+            var entryAssembly = Assembly.GetEntryAssembly();
+            configurator.AddConsumers(entryAssembly);
+            
             configurator.AddEntityFrameworkOutbox<OrdersDbContext>(x =>
             {
                 x.DuplicateDetectionWindow = TimeSpan.FromMinutes(5);
@@ -26,28 +30,26 @@ internal static class BuilderExtensions
                     repo.ConcurrencyMode = ConcurrencyMode.Optimistic;
                     repo.ExistingDbContext<OrdersDbContext>();
                 });
-    
-            configurator.SetKebabCaseEndpointNameFormatter();
-    
-            var entryAssembly = Assembly.GetEntryAssembly();
-            configurator.AddConsumers(entryAssembly);
-    
-            configurator.UsingRabbitMq((context, cfg) =>
+            
+            configurator.UsingAmazonSqs((context, cfg) =>
             {
-                cfg.Host("localhost", 9520, "/", h =>
+                cfg.Host("us-east-2", h =>
                 {
-                    h.Username("guest");
-                    h.Password("guest");
-                });
+                    h.AccessKey(builder.Configuration["Aws:AccessKey"]);
+                    h.SecretKey(builder.Configuration["Aws:SecretKey"]);
+                    
+                    h.Scope("remittance-dev", scopeTopics: true);
 
+                });
+                
                 cfg.UseInMemoryScheduler();
         
                 cfg.UseSendFilter<CreateOrderFilter>(context);
                 cfg.UseSendFilter(typeof(SendLoggerFilter<>), context);
                 cfg.UsePublishFilter(typeof(PublishLoggerFilter<>), context);
                 cfg.UseConsumeFilter(typeof(ConsumeLoggerFilter<>), context);
-        
-                cfg.ConfigureEndpoints(context);
+                
+                cfg.ConfigureEndpoints(context, new KebabCaseEndpointNameFormatter("remittance-dev"));
             });
 
         });
