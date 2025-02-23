@@ -4,7 +4,6 @@ using Hones.Remit.Api.Data;
 using Hones.Remit.Api.Domain;
 using Hones.Remit.Api.MassTransit.Commands.CancelOrder;
 using Hones.Remit.Api.MassTransit.Events.OrderCollected;
-using Hones.Remit.Api.MassTransit.Events.OrderExpired;
 using Hones.Remit.Api.MassTransit.Events.OrderPaid;
 using Hones.Remit.Api.MassTransit.Requests.CreateOrder;
 using MassTransit;
