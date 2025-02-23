@@ -72,12 +72,12 @@ public class OrderStateMachine : MassTransitStateMachine<OrderState>
         
         During(Paid,
             When(PaymentValidationSucceeded)
-                .Then(context =>
+                .ThenAsync(async context =>
                 {
                     context.Saga.DateValidationSucceededUtc = DateTimeOffset.UtcNow;
                     context.Saga.DateReadyForCollection = DateTimeOffset.UtcNow;
                     context.Saga.CurrentState = OrderState.States.ReadyForCollection;
-                    context.Publish(new OrderReadyForCollection(context.Saga.OrderId));
+                    await context.Publish(new OrderReadyForCollection(context.Saga.OrderId));
                 })
                 .TransitionTo(ReadyForCollection));
             
