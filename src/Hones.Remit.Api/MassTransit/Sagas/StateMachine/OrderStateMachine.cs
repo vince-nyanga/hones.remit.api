@@ -77,6 +77,7 @@ public class OrderStateMachine : MassTransitStateMachine<OrderState>
                     context.Saga.DateValidationSucceededUtc = DateTimeOffset.UtcNow;
                     context.Saga.DateReadyForCollection = DateTimeOffset.UtcNow;
                     context.Saga.CurrentState = OrderState.States.ReadyForCollection;
+                    context.Publish(new OrderReadyForCollection(context.Saga.OrderId));
                 })
                 .TransitionTo(ReadyForCollection));
             
